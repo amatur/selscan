@@ -1,8 +1,11 @@
 #ifndef __IHH12_H__
 #define __IHH12_H__
 
-#include "../selscan-maintools.h"
+#include "selscan-stats.h"
+#include <thread>
 #include <unordered_map>
+
+
 
 using namespace std;
 
@@ -17,32 +20,33 @@ class IHH12_ehh_data{
     double prev_ehh_before_norm = twice_num_pair(nhaps);
     double curr_ehh_before_norm = 0;
 
-    uint64_t n_c[2] = {0,0};
+    int n_c[2] = {0,0};
     int nhaps;
     int totgc = 0;
     int* group_count;
     bool* isDerived;
     int* group_id;
 
-    vector<unsigned int> v;
+    vector<int> v;
 
     ~IHH12_ehh_data(){
         delete[] group_count;
         delete[] isDerived;
         delete[] group_id;
     }
-    inline unsigned int square_alt(int n){
+
+    inline double square_alt(int n){
         return n*n;
     }
 
-    inline uint64_t twice_num_pair(int n){
-        // if(n < 2){
-        //     return 0;
-        // }
+    inline double twice_num_pair(int n){
+        if(n < 2){
+            return 0;
+        }
         // return 2*nCk(n, 2);
-        return n*n - n;
+        return 2*nCk(n, 2);
     }
-    void init(int nhaps, vector <unsigned int>& positions ){
+    void init(int nhaps, vector <int>& positions ){
         this->nhaps = nhaps;
         group_count = new int[nhaps];
         isDerived = new bool[nhaps];
@@ -88,9 +92,11 @@ class IHH12_ehh_data{
 
 }; 
 
-class IHH12 : public MainTools{
+class IHH12 : public SelscanStats{
     public:
-        IHH12(HapMap& hm, param_main& params,  ofstream* flog,  ofstream* fout) : MainTools(hm, params,  flog,  fout){}
+        IHH12(const std::unique_ptr<HapMap>&  hm, param_main& params,  ofstream* flog,  ofstream* fout) : SelscanStats(hm, params,  flog,  fout){
+            max_extend = ( p.MAX_EXTEND <= 0) ? hm->mapData->mapEntries[hm->mapData->nloci-1].physicalPos -  hm->mapData->mapEntries[0].physicalPos : p.MAX_EXTEND  ;
+        }
         void main();
         void findMaxTwo(int* arr, int n, int &max1, int &max2);
         //void findMaxK(int* arr, int n, int &max1, int &max2, int k);
@@ -101,12 +107,11 @@ class IHH12 : public MainTools{
 
         int max_extend;
 
-        void calc_stat_at_locus(int locus, unordered_map<unsigned int, vector<unsigned int> >& m);
-        void calc_ehh_unidirection(int locus, unordered_map<unsigned int, vector<unsigned int> > & m, bool downstream);
-        void static thread_main(int tid, unordered_map<unsigned int, vector<unsigned int> >& m, IHH12* obj);
+        void calc_stat_at_locus(int locus, unordered_map<int, vector<int> >& m);
+        void calc_ehh_unidirection(int locus, unordered_map<int, vector<int> > & m, bool downstream);
+        void static thread_main(int tid, unordered_map<int, vector<int> >& m, IHH12* obj);
 
-        void updateEHH_from_split(const unordered_map<unsigned int, vector<unsigned int> > & m, IHH12_ehh_data* p);
-
+        void updateEHH_from_split(const unordered_map<int, vector<int> > & m, IHH12_ehh_data* p);
 };
 
 

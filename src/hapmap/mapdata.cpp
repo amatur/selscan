@@ -3,8 +3,7 @@
 #include <string>
 #include "../gzstream.h"
 #include <queue>
-
-
+#include <sstream>
 
 using namespace std;
 
@@ -84,11 +83,12 @@ void MapData::readMapData(string filename, int expected_loci, bool USE_PMAP, que
         fin >> mapEntries[locus_after_filter].geneticPos;
         fin >> mapEntries[locus_after_filter].physicalPos;
 
-        locus_query_map[mapEntries[locus_after_filter].locusName] = locus_after_filter;
+        //locus_query_map[mapEntries[locus_after_filter].locusName] = locus_after_filter;
         mapEntries[locus_after_filter].locId = locus_before_filter;
 
         double Mb = 1000000.0;
-        if (USE_PMAP) mapEntries[locus_after_filter].geneticPos = double(mapEntries[locus_after_filter].physicalPos)/Mb;
+        //if (USE_PMAP) 
+        mapEntries[locus_after_filter].geneticPos = (long double)(mapEntries[locus_after_filter].physicalPos/Mb);
         //if (USE_PMAP) mapEntries[locus_after_filter].geneticPos = double(mapEntries[locus_after_filter].physicalPos);
 
         locus_after_filter++;
@@ -98,8 +98,11 @@ void MapData::readMapData(string filename, int expected_loci, bool USE_PMAP, que
     fin.close();
 }
 
-void MapData::readMapDataTPED(string filename, int expected_loci, int expected_haps, bool USE_PMAP)
-{
+void MapData::readMapDataTPED(string filename, int expected_loci, int expected_haps, bool USE_PMAP, queue<int>& skip_queue)
+{   
+    cerr<<"readMapDataTPED not tested yet."<<endl;
+    throw 1;
+
     igzstream fin;
     cerr << "Opening " << filename << "...\n";
     fin.open(filename.c_str());
@@ -127,9 +130,9 @@ void MapData::readMapDataTPED(string filename, int expected_loci, int expected_h
         }
     }
 
-    if (nloci != expected_loci)
+    if (nloci - skip_queue.size() != expected_loci)
     {
-        cerr << "ERROR: Expected " << expected_loci << " loci in map file but found " << nloci << ".\n";
+        cerr << "ERROR: Expected " << expected_loci << " loci in map file but found " << nloci - skip_queue.size()  << ".\n";
         throw 0;
     }
 
@@ -144,24 +147,38 @@ void MapData::readMapDataTPED(string filename, int expected_loci, int expected_h
         throw 0;
     }
 
-    cerr << "Loading map data for " << nloci << " loci\n";
+    cerr << "Loading map data for " << nloci-skip_queue.size() << " loci\n";
 
-    initMapData(nloci);
+    initMapData(nloci-skip_queue.size());
     
     double Mb = 1000000.0;
     
     string chr;
-    for (int locus = 0; locus < this->nloci; locus++)
+    int locus_after_filter = 0;
+    for (int locus = 0; locus < this->nloci; locus++)  // locus = locus_before_filter
     {
-        fin >> mapEntries[locus].chr;
-        fin >> mapEntries[locus].locusName;
-        fin >> mapEntries[locus].geneticPos;
-        fin >> mapEntries[locus].physicalPos;
-
-        locus_query_map[mapEntries[locus].locusName] = locus;
-
-        if (USE_PMAP) mapEntries[locus].geneticPos = double(mapEntries[locus].physicalPos)/Mb;
         getline(fin, line);
+        
+        if(!skip_queue.empty()){
+            if(skip_queue.front()==locus){
+                skip_queue.pop();
+                //getline(fin, line);
+                continue;
+            }
+        }
+
+        stringstream ss(line);
+        ss >> mapEntries[locus_after_filter].chr;
+        ss >> mapEntries[locus_after_filter].locusName;
+        ss >> mapEntries[locus_after_filter].geneticPos;
+        ss >> mapEntries[locus_after_filter].physicalPos;
+
+        cout<<mapEntries[locus_after_filter].chr<<"\t" << mapEntries[locus_after_filter].locusName << "\t" << mapEntries[locus_after_filter].physicalPos << endl;
+        //locus_query_map[mapEntries[locus_after_filter].locusName] = locus_after_filter;
+
+        if (USE_PMAP) mapEntries[locus_after_filter].geneticPos = double(mapEntries[locus_after_filter].physicalPos)/Mb;
+        //getline(fin, line);
+        locus_after_filter++;
     }
 
     fin.close();
@@ -239,11 +256,11 @@ void MapData::readMapDataVCF(string filename, int expected_loci, queue <int>& sk
         fin >> mapEntries[locus_after_filter].physicalPos;
         fin >> mapEntries[locus_after_filter].locusName;
         //locus_query_map[mapEntries[locus].locusName] = locus;
-        locus_query_map[to_string(mapEntries[locus_after_filter].physicalPos)] = locus_after_filter;
+        //locus_query_map[to_string(mapEntries[locus_after_filter].physicalPos)] = locus_after_filter;
         mapEntries[locus_after_filter].locId = locus_before_filter;
 
-        mapEntries[locus_after_filter].geneticPos = double(mapEntries[locus_after_filter].physicalPos)/Mb;
-
+        mapEntries[locus_after_filter].geneticPos = (long double)(mapEntries[locus_after_filter].physicalPos)/Mb;
+        //cout<<mapEntries[locus_after_filter].geneticPos<<" "<<mapEntries[locus_after_filter].physicalPos<<endl;
         getline(fin, line);
         locus_after_filter++;
     }
@@ -260,36 +277,15 @@ void MapData::initMapData(int nloci)
         throw 0;
     }
 
-    //MapData *data = new MapData;
-    //
-
     mapEntries = new struct MapEntry[nloci];
     this->nloci = nloci;
-
-
-    // data->nloci = nloci;
-    // data->locusName = new string[nloci];
-    // data->physicalPos = new int[nloci];
-    // data->geneticPos = new double[nloci];
-
-    // for (int locus = 0; locus < nloci; locus++)
-    // {
-    //     data->locusName[locus] = "--";
-    //     data->physicalPos[locus] = MISSING;
-    //     data->geneticPos[locus] = MISSING;
-    // }
 }
 
 void MapData::releaseMapData()
 {
     if (mapEntries == NULL) return;
     this->nloci = -9;
-    // delete [] data->locusName;
-    // delete [] data->physicalPos;
-    // delete [] data->geneticPos;
-    // delete data;
-    // data = NULL;
-    
+
     delete [] mapEntries;
     mapEntries = NULL;
     return;

@@ -9,12 +9,10 @@
 
 using namespace std;
 
-
-
 const string ARG_HELP = "--help";
 
 struct param_main{
-     string hapFilename, hapFilename2 ;
+    string hapFilename, hapFilename2 ;
     string mapFilename;
     string tpedFilename, tpedFilename2;
     string vcfFilename, vcfFilename2 ;
@@ -48,7 +46,7 @@ struct param_main{
     int PI_WIN;
 
     bool LOW_MEM;
-    int BENCHMARK_FLAG;
+    int MISSING;
 
 };
 
