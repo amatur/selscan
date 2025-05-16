@@ -15,17 +15,67 @@
 #ifndef __SELSCAN_CLI_H__
 #define __SELSCAN_CLI_H__
 
+
+#include <thread>
+
+
 #include "param_t.h"
 #include <string>
 
 using namespace std;
 
-const string VERSION = "v3_Jul26_Optimized";
+
+
+
+
+
+
+#define LOG(msg) do { \
+        std::cerr << msg << std::endl; \
+        if (flog) (*flog) << msg << std::endl; \
+    } while (0)
+    
+    
+    #ifdef DEBUG
+        #define DBG(x) do { std::cerr << "[DEBUG] " << x << std::endl; } while (0)
+    #else
+        #define DBG(x) do {} while (0)
+    #endif
+    
+    #include <stdexcept>
+    
+    #ifdef DEBUG
+        #define HANDLE_ERROR(msg) do { \
+            std::cerr << "[DEBUG ERROR] " << msg << std::endl; \
+            *flog << "[ERROR] " << msg << std::endl; \
+            throw 1; \
+        } while(0)
+        #define HANDLE_ERROR_NOLOG(msg) do { \
+            std::cerr << "[ERROR] " << msg << std::endl; \
+            throw 1; \
+        } while(0)
+    #else
+        #define HANDLE_ERROR(msg) do { \
+            std::cerr << "[ERROR] " << msg << std::endl; \
+            *flog << "[ERROR] " << msg << std::endl; \
+            exit(EXIT_FAILURE); \
+        } while(0)
+        #define HANDLE_ERROR_NOLOG(msg) do { \
+                std::cerr << "[ERROR] " << msg << std::endl; \
+                exit(EXIT_FAILURE); \
+            } while(0)
+    #endif
+
+
+
+
+
+const string VERSION = "2.1.0";
 
 const string PREAMBLE = "\nselscan v" + VERSION + " -- a program to calculate EHH-based scans for positive selection in genomes.\n\
 Source code and binaries can be found at <https://www.github.com/szpiech/selscan>.\n\
 \n\
-selscan currently implements EHH, iHS, XP-EHH, and nSL.\n\
+selscan currently implements EHH, iHS, XP-EHH, XP-nSL, iHH12 and nSL.\n\
 \n\
 Citations:\n\
 \n\
@@ -65,7 +115,7 @@ To calculate XP-EHH:\n\
 ./selscan --xpehh --vcf <vcf> --vcf-ref <vcf> --map <mapfile> --out <outfile>\n";
 
 const string ARG_THREAD = "--threads";
-const int DEFAULT_THREAD = 1;
+const int DEFAULT_THREAD = std::thread::hardware_concurrency();
 const string HELP_THREAD = "The number of threads to spawn during the calculation.\n\
 \tPartitions loci across threads.";
 
@@ -103,6 +153,19 @@ const string DEFAULT_FILENAME_POP2 = "__hapfile2";
 const string HELP_FILENAME_POP2 = "A hapfile with one row per haplotype, and one column per\n\
 \tvariant. Variants should be coded 0/1. This is the 'reference'\n\
 \tpopulation for XP calculations.  Ignored otherwise.";
+
+
+const string ARG_FILENAME_POP1_THAP = "--thap";
+const string DEFAULT_FILENAME_POP1_THAP = "__thapfile1";
+const string HELP_FILENAME_POP1_THAP = "A hapfile in IMPUTE hap format with one column per haplotype, and one row per\n\
+\tvariant. Variants should be coded 0/1";
+
+const string ARG_FILENAME_POP2_THAP = "--thap-ref";
+const string DEFAULT_FILENAME_POP2_THAP = "__thapfile2";
+const string HELP_FILENAME_POP2_THAP = "A hapfile in IMPUTE hap format with one column per haplotype, and row per\n\
+\tvariant. Variants should be coded 0/1. This is the 'reference'\n\
+\tpopulation for XP calculations.  Ignored otherwise.";
+
 
 const string ARG_FILENAME_MAP = "--map";
 const string DEFAULT_FILENAME_MAP = "__mapfile";
@@ -184,13 +247,26 @@ const string DEFAULT_EHH = "__NO_LOCUS__";
 const string HELP_EHH = "Calculate EHH of the '1' and '0' haplotypes at the specified\n\
 \tlocus. Output: <physical dist> <genetic dist> <'1' EHH> <'0' EHH>";
 
+
+
+// const string ARG_EHHS = "--ehhs";
+// const bool DEFAULT_EHHS = false;
+// const string HELP_EHHS = "Calculate EHH of the '1' and '0' haplotypes at all loci. Outputs separate files for different loci. \n Output: <physical dist> <genetic dist> <'1' EHH> <'0' EHH>";
+
+
+
+const string ARG_EHH12 = "--ehh12";
+const string DEFAULT_EHH12 = "__NO_LOCUS__";
+const string HELP_EHH12 = "Calculate EHH12 of the '1' and '0' haplotypes at the specified\n\
+\tlocus. Output: <physical dist> <genetic dist> <'1' EHH> <'0' EHH>";
+
 const string ARG_QWIN = "--ehh-win";
 const int DEFAULT_QWIN = 100000;
 const string HELP_QWIN = "When calculating EHH, this is the length of the window in bp\n\
 \tin each direction from the query locus.";
 
 const string ARG_MAX_EXTEND = "--max-extend";
-const int DEFAULT_MAX_EXTEND = 1000000;//1000000
+const int DEFAULT_MAX_EXTEND = 1000000;         //1000000
 const string HELP_MAX_EXTEND = "The maximum distance an EHH decay curve is allowed to extend from the core.\n\
 \tSet <= 0 for no restriction.";
 
@@ -222,16 +298,31 @@ const string ARG_PI_WIN = "--pi-win";
 const int DEFAULT_PI_WIN = 100;
 const string HELP_PI_WIN = "Sliding window size in bp for calculating pi.";
 
+// @UNCOMMENT
+// const string ARG_MISSING_FLAG = "--missing";
+// const bool DEFAULT_MISSING_FLAG = false;
+// const string HELP_MISSING_FLAG = "Set this flag to allow missing data.";
 
-const string ARG_LOW_MEM = "--low-mem";
-const bool DEFAULT_LOW_MEM  = true;
-const string HELP_LOW_MEM = "Switch to low memory bitset version.";
+// const string ARG_MULTI_CHR = "--multi-chr";
+// const string DEFAULT_MULTI_CHR = "__NO_CHR__";
+// const string HELP_MULTI_CHR = "Comma-separated list of chromosomes to include in the analysis.";
 
-const string ARG_MISSING_FLAG = "--missing";
-const bool DEFAULT_MISSING_FLAG = false;
-const string HELP_MISSING_FLAG = "Set this flag to allow missing data.";
+// @UNCOMMENT
+// const string ARG_IMPUTE_FLAG = "--impute";
+// const bool DEFAULT_IMPUTE_FLAG = false;
+// const string HELP_IMPUTE_FLAG = "Set this flag to allow imputing missing data using new algorithm.";
 
-bool initalizeParameters(param_t &params,int argc, char *argv[]);
-bool checkParameters(param_t &params,int argc, char *argv[]);
+const string ARG_MULTI_PARAMS = "--multi-param";
+const string DEFAULT_MULTI_PARAMS = "__jsonFile";
+const string HELP_MULTI_PARAMS = "Specify a JSON file with multiple parameter sets.\n\
+\tEach set should match the structure of command-line arguments.\n\
+\tThe program will run the analysis for each set, generating separate outputs.\n\
+\tUseful for batch processing and exploring different configurations.\n";
+
+void initalizeParameters(param_t &params,int argc, char *argv[]);
+void checkParameters(param_main &params);
+void getBaseParamFromCmdLine(param_t& params, param_main &p);
+void jsonParse(param_main &base_p, vector<param_main> &multi_params);
+//bool checkParameters(param_t &params,int argc, char *argv[]);
 
 #endif

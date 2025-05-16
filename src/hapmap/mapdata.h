@@ -15,7 +15,7 @@ struct MapEntry
     string locusName;
     string chr;
     int locId;
-    bool skipLocus = false;
+    //bool skipLocus = false;
 };
 
 class MapData
@@ -23,6 +23,9 @@ class MapData
 public:
     struct MapEntry* mapEntries = NULL; //vector of map entries
     int nloci;
+    
+    //map<string, int> chr_list;
+    
     //map<string, int> locus_query_map;
     
     ~MapData(){
@@ -62,17 +65,18 @@ public:
         return numFields;
     }
 
-    void print(){
-        for (int i = 0; i < nloci; i++)
+    /// FOR_DEBUGGING
+    void print(int loc=5){
+        //loc = nloci
+        for (int i = 0; i < loc; i++)
         {
-            cout << "Locus: " << i << " Physical Pos: " << mapEntries[i].physicalPos << endl;
+            cout<<i <<" "<<mapEntries[i].physicalPos<<" "<<mapEntries[i].geneticPos<<" "<<mapEntries[i].locusName<<endl;
+            //cout << "Locus: " << i << " Physical Pos: " << mapEntries[i].physicalPos << endl;
             // cout << "Genetic Pos: " << mapEntries[i].geneticPos << endl;
             // cout << "Locus Name: " << mapEntries[i].locusName << endl;
             // cout << "Chromosome: " << mapEntries[i].chr << endl;
         }
     }
-
-    
 };
 
 #endif

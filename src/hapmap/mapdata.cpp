@@ -4,6 +4,7 @@
 #include "../gzstream.h"
 #include <queue>
 #include <sstream>
+#include <limits>
 
 using namespace std;
 
@@ -15,16 +16,15 @@ using namespace std;
 void MapData::readMapData(string filename, int expected_loci, bool USE_PMAP, queue<int>& skip_queue)
 {
     igzstream fin;
-    cerr << "Opening " << filename << "...\n";
+    cerr << "Opening " << filename << " to read map data...\n";
     fin.open(filename.c_str());
 
     if (fin.fail())
     {
         cerr << "ERROR: Failed to open " << filename << " for reading.\n";
-        throw 0;
+        exit(EXIT_FAILURE);
     }
 
-    //int fileStart = fin.tellg();
     string line;
     int nloci_before_filter = 0;
     int num_cols = 4;
@@ -37,25 +37,25 @@ void MapData::readMapData(string filename, int expected_loci, bool USE_PMAP, que
         {
             cerr << "ERROR: line " << nloci_before_filter << " of " << filename << " has " << current_cols
                  << ", but expected " << num_cols << ".\n";
-            throw 0;
+            exit(EXIT_FAILURE);
         }
     }
 
     if (nloci_before_filter-skip_queue.size() != expected_loci)
     {
         cerr << "ERROR: Expected " << expected_loci << " loci in map file but found " << nloci_before_filter-skip_queue.size() << ".\n";
-        throw 0;
+        exit(EXIT_FAILURE);
     }
 
     fin.clear(); // clear error flags
-    //fin.seekg(fileStart);
     fin.close();
-    fin.open(filename.c_str());
 
+
+    fin.open(filename.c_str());
     if (fin.fail())
     {
         cerr << "ERROR: Failed to open " << filename << " for reading.\n";
-        throw 0;
+        exit(EXIT_FAILURE);
     }
 
     cerr << "Loading map data for " << nloci_before_filter-skip_queue.size() << " loci\n";
@@ -87,9 +87,9 @@ void MapData::readMapData(string filename, int expected_loci, bool USE_PMAP, que
         mapEntries[locus_after_filter].locId = locus_before_filter;
 
         double Mb = 1000000.0;
-        //if (USE_PMAP) 
-        mapEntries[locus_after_filter].geneticPos = (long double)(mapEntries[locus_after_filter].physicalPos/Mb);
-        //if (USE_PMAP) mapEntries[locus_after_filter].geneticPos = double(mapEntries[locus_after_filter].physicalPos);
+
+       // mapEntries[locus_after_filter].geneticPos = (long double)(mapEntries[locus_after_filter].physicalPos/Mb);
+        if (USE_PMAP) mapEntries[locus_after_filter].geneticPos = double(mapEntries[locus_after_filter].physicalPos/Mb);
 
         locus_after_filter++;
         getline(fin, line);
@@ -100,9 +100,6 @@ void MapData::readMapData(string filename, int expected_loci, bool USE_PMAP, que
 
 void MapData::readMapDataTPED(string filename, int expected_loci, int expected_haps, bool USE_PMAP, queue<int>& skip_queue)
 {   
-    cerr<<"readMapDataTPED not tested yet."<<endl;
-    throw 1;
-
     igzstream fin;
     cerr << "Opening " << filename << "...\n";
     fin.open(filename.c_str());
@@ -110,10 +107,9 @@ void MapData::readMapDataTPED(string filename, int expected_loci, int expected_h
     if (fin.fail())
     {
         cerr << "ERROR: Failed to open " << filename << " for reading.\n";
-        throw 0;
+        exit(EXIT_FAILURE);
     }
 
-    //int fileStart = fin.tellg();
     string line;
     int nloci = 0;
     int num_cols = 4;
@@ -126,25 +122,27 @@ void MapData::readMapDataTPED(string filename, int expected_loci, int expected_h
         {
             cerr << "ERROR: line " << nloci << " of " << filename << " has " << current_cols
                  << ", but expected " << num_cols + expected_haps << ".\n";
-            throw 0;
+            exit(EXIT_FAILURE);
         }
     }
 
     if (nloci - skip_queue.size() != expected_loci)
     {
         cerr << "ERROR: Expected " << expected_loci << " loci in map file but found " << nloci - skip_queue.size()  << ".\n";
-        throw 0;
+        exit(EXIT_FAILURE);
     }
 
     fin.clear(); // clear error flags
-    //fin.seekg(fileStart);
     fin.close();
+
+
+
     fin.open(filename.c_str());
 
     if (fin.fail())
     {
         cerr << "ERROR: Failed to open " << filename << " for reading.\n";
-        throw 0;
+        exit(EXIT_FAILURE);
     }
 
     cerr << "Loading map data for " << nloci-skip_queue.size() << " loci\n";
@@ -155,29 +153,23 @@ void MapData::readMapDataTPED(string filename, int expected_loci, int expected_h
     
     string chr;
     int locus_after_filter = 0;
-    for (int locus = 0; locus < this->nloci; locus++)  // locus = locus_before_filter
+    for (int locus = 0; locus < nloci; locus++)  // locus = locus_before_filter
     {
-        getline(fin, line);
-        
         if(!skip_queue.empty()){
             if(skip_queue.front()==locus){
                 skip_queue.pop();
-                //getline(fin, line);
+                getline(fin, line);
                 continue;
             }
         }
-
-        stringstream ss(line);
-        ss >> mapEntries[locus_after_filter].chr;
-        ss >> mapEntries[locus_after_filter].locusName;
-        ss >> mapEntries[locus_after_filter].geneticPos;
-        ss >> mapEntries[locus_after_filter].physicalPos;
-
-        cout<<mapEntries[locus_after_filter].chr<<"\t" << mapEntries[locus_after_filter].locusName << "\t" << mapEntries[locus_after_filter].physicalPos << endl;
-        //locus_query_map[mapEntries[locus_after_filter].locusName] = locus_after_filter;
+        fin >> mapEntries[locus_after_filter].chr;
+        fin >> mapEntries[locus_after_filter].locusName;
+        fin >> mapEntries[locus_after_filter].geneticPos;
+        fin >> mapEntries[locus_after_filter].physicalPos;
+        fin.ignore(std::numeric_limits<std::streamsize>::max(), '\n'); // skip rest of the line
 
         if (USE_PMAP) mapEntries[locus_after_filter].geneticPos = double(mapEntries[locus_after_filter].physicalPos)/Mb;
-        //getline(fin, line);
+    
         locus_after_filter++;
     }
 
@@ -186,13 +178,13 @@ void MapData::readMapDataTPED(string filename, int expected_loci, int expected_h
 
 void MapData::readMapDataVCF(string filename, int expected_loci, queue <int>& skip_queue) {
     igzstream fin;
-    cerr << "Opening " << filename << "...\n";
+    cerr << "Opening " << filename << " to read map data...\n";
     fin.open(filename.c_str());
 
     if (fin.fail())
     {
         cerr << "ERROR: Failed to open " << filename << " for reading.\n";
-        throw 0;
+        exit(EXIT_FAILURE);
     }
 
     string line;
@@ -211,7 +203,7 @@ void MapData::readMapDataVCF(string filename, int expected_loci, queue <int>& sk
     if (nloci_before_filter-skip_queue.size() != expected_loci)
     {
         cerr << "ERROR: Expected " << expected_loci << " loci in file but found " << nloci_before_filter-skip_queue.size() << ".\n";
-        throw 0;
+        exit(EXIT_FAILURE);
     }
 
     fin.clear(); // clear error flags
@@ -222,7 +214,7 @@ void MapData::readMapDataVCF(string filename, int expected_loci, queue <int>& sk
     if (fin.fail())
     {
         cerr << "ERROR: Failed to open " << filename << " for reading.\n";
-        throw 0;
+        exit(EXIT_FAILURE);
     }
 
     cerr << "Loading map data for " << nloci_before_filter-skip_queue.size() << " loci\n";
@@ -237,6 +229,7 @@ void MapData::readMapDataVCF(string filename, int expected_loci, queue <int>& sk
     
     string chr;
 
+    //int n_chromosomes_included = 0;
     unsigned int locus_after_filter = 0;
     for (unsigned  int locus_before_filter = 0; locus_before_filter < nloci_before_filter; locus_before_filter++)
     {
@@ -259,22 +252,31 @@ void MapData::readMapDataVCF(string filename, int expected_loci, queue <int>& sk
         //locus_query_map[to_string(mapEntries[locus_after_filter].physicalPos)] = locus_after_filter;
         mapEntries[locus_after_filter].locId = locus_before_filter;
 
+        //if exists in map do nothing else insert
+        // if(chr_list.find(mapEntries[locus_after_filter].chr) == chr_list.end()){
+        //     chr_list[mapEntries[locus_after_filter].chr] = n_chromosomes_included++;
+        // }
+
         mapEntries[locus_after_filter].geneticPos = (long double)(mapEntries[locus_after_filter].physicalPos)/Mb;
         //cout<<mapEntries[locus_after_filter].geneticPos<<" "<<mapEntries[locus_after_filter].physicalPos<<endl;
         getline(fin, line);
         locus_after_filter++;
     }
 
+    // if(chr_list.size() == 0){
+    //     cerr<<"ERROR: No chromosomes found in map file.\n";
+    //     throw 0;
+    // }
+    
     fin.close();
 }
 
-//allocates the arrays and populates them with MISSING or "--" depending on type
 void MapData::initMapData(int nloci)
 {
     if (nloci < 1)
     {
         cerr << "ERROR: number of loci (" << nloci << ") must be positive.\n";
-        throw 0;
+        exit(EXIT_FAILURE);
     }
 
     mapEntries = new struct MapEntry[nloci];
