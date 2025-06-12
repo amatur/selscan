@@ -19,6 +19,11 @@
 /// @brief Class to hold common stuff required to compute all statistics for selscan
 class SelscanStats {
     protected:
+
+        bool inline skipLocus(tuple<double, double, double, double> p){
+            return (std::get<0>(p) == SKIP_LOCUS_VALUE);
+        }
+        
         bool inline skipLocus(pair<double, double> p){
             return (p.first == SKIP_LOCUS_VALUE || p.second == SKIP_LOCUS_VALUE );
         }
@@ -26,7 +31,9 @@ class SelscanStats {
         bool inline skipLocus(double p){
             return p == SKIP_LOCUS_VALUE;
         }
-
+        tuple<double, double, double, double> inline skipLocusTuple(){
+            return make_tuple(SKIP_LOCUS_VALUE,SKIP_LOCUS_VALUE, SKIP_LOCUS_VALUE, SKIP_LOCUS_VALUE);
+        }
 
         pair<double, double> inline skipLocusPair(){
             return make_pair(SKIP_LOCUS_VALUE,SKIP_LOCUS_VALUE);

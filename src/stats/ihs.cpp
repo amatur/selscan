@@ -415,11 +415,13 @@ string IHS::getOrder(uint64_t n_c2, uint64_t n_c1, uint64_t n_c0){
 /**
  * Calculate EHH in only one direction until cutoff is hit - upstream or downstream
 */
-pair<double, double> IHS::calc_ehh_unidirection(int locus, bool downstream){
+tuple<double, double, double, double> IHS::calc_ehh_unidirection(int locus, bool downstream){
 
     if(p.MULTI_MAF && hm->hapData->get_maf(locus) <= p.MAF){
-        return skipLocusPair();
+        return skipLocusTuple();
     }
+    double physicalDistanceFromCore = -1;
+    double bpDistanceFromCore = -1;
 
     double ihh1=0;
     double ihh0=0;
@@ -461,7 +463,7 @@ pair<double, double> IHS::calc_ehh_unidirection(int locus, bool downstream){
         (*flog) << "WARNING: locus " << hm->mapData->mapEntries[locus].locusName
                 << " (pos " << hm->mapData->mapEntries[locus].physicalPos << ") has minor allele count = 1. Skipping calculation at this locus.\n";
         }//unlock
-        return skipLocusPair();
+        return skipLocusTuple();
         
     }
     // if( hm->mapData->mapEntries[locus].locusName == "Locus0"){
@@ -484,7 +486,7 @@ pair<double, double> IHS::calc_ehh_unidirection(int locus, bool downstream){
                 << " (number " << locus << ") is monomorphic. Skipping calculation at this locus.\n";
         }//unlock
         
-        return skipLocusPair();
+        return skipLocusTuple();
     }else if (n_c1==numHaps){ // all 1s
         group_count[0] = numHaps;
         totgc+=1;
@@ -498,7 +500,7 @@ pair<double, double> IHS::calc_ehh_unidirection(int locus, bool downstream){
         (*flog) << "WARNING: locus " << hm->mapData->mapEntries[locus].locusName
                 << " (pos " << hm->mapData->mapEntries[locus].physicalPos << ") is monomorphic. Skipping calculation at this locus.\n";
         }//unlock
-        return skipLocusPair();
+        return skipLocusTuple();
         //hm->mapData->mapEntries[locus].skipLocus = true;
     }else{  //so both n_c1 and n_c0 is non-0
         group_count[1] = n_c1;
@@ -538,7 +540,7 @@ pair<double, double> IHS::calc_ehh_unidirection(int locus, bool downstream){
     int i = locus;  
     while(true){ // Upstream: for ( int i = locus+1; i<all_positions.size(); i++ )
 
-        if(p. CALC_IHS && !p.CALC_NSL){
+        if(p.CALC_IHS && !p.CALC_NSL){
             if(curr_ehh1_before_norm*1.0/normalizer_1 <= p.EHH_CUTOFF and curr_ehh0_before_norm*1.0/normalizer_0  <= p.EHH_CUTOFF){   // or cutoff, change for benchmarking against hapbin
                 //DBG("Break reason for locus "<<locus<<":: EHH_CUTOFF. "<<curr_ehh1_before_norm*1.0/normalizer_1<< "<=" << p.EHH_CUTOFF <<endl);
                 break;
@@ -560,7 +562,7 @@ pair<double, double> IHS::calc_ehh_unidirection(int locus, bool downstream){
             (*flog) << endl;
             }//unlock
             if (!p.TRUNC){
-                return skipLocusPair();
+                return skipLocusTuple();
             }
             break;
         }
@@ -694,10 +696,16 @@ pair<double, double> IHS::calc_ehh_unidirection(int locus, bool downstream){
             prev_ehh0_before_norm = curr_ehh0_before_norm;
         }
 
+        physicalDistanceFromCore = physicalDistance_from_core(i,locus, downstream);
+        bpDistanceFromCore =  abs(i-locus);
+
+
         if(totgc == numHaps) {
             //DBG("Break reason for locus "<<locus<<":: ALL_UNIQUE."<<endl);
             break;
         }
+
+
         if(!p.CALC_NSL && p.CALC_IHS && physicalDistance_from_core(i,locus, downstream) >= max_extend) {
             //DBG("Break reason for locus "<<locus<<":: MAX_EXTEND."<<endl);
             break;
@@ -717,7 +725,7 @@ pair<double, double> IHS::calc_ehh_unidirection(int locus, bool downstream){
     delete[] group_id;
     delete[] isDerived;
     //delete[] isAncestral;
-    return make_pair(ihh1, ihh0);
+    return make_tuple(ihh1, ihh0, physicalDistanceFromCore, bpDistanceFromCore);
 }
 
 
@@ -750,7 +758,7 @@ void IHS::main() {
     ThreadPool pool(p.numThreads);
 
     if(!p.WRITE_DETAILED_IHS){
-        std::vector< std::future<pair<double, double> > > results;
+        std::vector< std::future<tuple<double, double, double, double> > > results;
         for(int i = 0; i <  hm->mapData->nloci; ++i) {
             results.emplace_back(
                 pool.enqueue([i,this] {
@@ -761,11 +769,13 @@ void IHS::main() {
 
         int locus = 0; 
         for(auto && result: results){ // this is a blocking call
-            pair<double, double> ihh1_ihh0 = result.get(); 
-            double ihh1 = ihh1_ihh0.first;
-            double ihh0 = ihh1_ihh0.second;
+            tuple<double, double, double, double> ihh1_ihh0_pd_bd = result.get(); 
+            double ihh1 = get<0>(ihh1_ihh0_pd_bd);
+            double ihh0 = get<1>(ihh1_ihh0_pd_bd);
+            double physicalDistanceFromCore = get<2>(ihh1_ihh0_pd_bd);
+            double bpDistanceFromCore = get<3>(ihh1_ihh0_pd_bd);
 
-            if(!skipLocus(ihh1_ihh0)){
+            if(!skipLocus(ihh1_ihh0_pd_bd)){
                 if(hm->hapData->unphased){
                     const double& iHS2 = ihh1;
                     const double& iHS0 = ihh0;
@@ -779,7 +789,7 @@ void IHS::main() {
                     //std::fixed <<   std::setprecision(6) <<  
                     *fout << hm->mapData->mapEntries[locus].locusName << "\t" <<   hm->mapData->mapEntries[locus].physicalPos << "\t"
                             << hm->hapData->calcFreq(locus) << "\t"
-                            << ihh1 << "\t" << ihh0 <<"\t"<< log10(ihh1/ihh0) <<endl;
+                            << ihh1 << "\t" << ihh0 <<"\t"<< log10(ihh1/ihh0) << "\t" << physicalDistanceFromCore << "\t" << bpDistanceFromCore <<  endl;
                             //hm->mapData->mapEntries[locus].locId << "\t"
                 }
             }
@@ -862,7 +872,7 @@ void IHS::main() {
  * @param locus The locus index in the haplotype matrix.
  * @return Pair of iHS-like values: (derived_score, ancestral_score)
  */
-std::pair<double, double> IHS::calc_ihh1(int locus) {
+std::tuple<double, double, double, double> IHS::calc_ihh1(int locus) {
     const int numSnps = hm->mapData->nloci;
     const int numHaps = hm->hapData->nhaps;
 
@@ -876,10 +886,10 @@ std::pair<double, double> IHS::calc_ihh1(int locus) {
         double cihh0_downstream  = 0;
 
         pair<double, double>  ihh2_ihh0_downstream = calc_ehh_unidirection_unphased(locus, true,  std::ref(cihh2_downstream), std::ref(cihh0_downstream)); // downstream
-        if (skipLocus(ihh2_ihh0_downstream)) return skipLocusPair();
+        if (skipLocus(ihh2_ihh0_downstream)) return skipLocusTuple();
 
         pair<double, double> ihh2_ihh0_upstream = calc_ehh_unidirection_unphased(locus, false, std::ref(cihh2_upstream), std::ref(cihh0_upstream)); // upstream
-        if(skipLocus(ihh2_ihh0_upstream)) return skipLocusPair();
+        if(skipLocus(ihh2_ihh0_upstream)) return skipLocusTuple();
 
         ihh2 = ihh2_ihh0_upstream.first + ihh2_ihh0_downstream.first;
         ihh0 = ihh2_ihh0_upstream.second + ihh2_ihh0_downstream.second;
@@ -893,7 +903,7 @@ std::pair<double, double> IHS::calc_ihh1(int locus) {
                 (*flog) << "WARNING: locus " << hm->mapData->mapEntries[locus].locusName
                 << " (pos " <<  hm->mapData->mapEntries[locus].physicalPos << ") has ihh2 = 0. Skipping this locus. "<<endl;
             }
-            return skipLocusPair();
+            return skipLocusTuple();
         }
 
         if(ihh0 == 0){
@@ -902,27 +912,27 @@ std::pair<double, double> IHS::calc_ihh1(int locus) {
                 (*flog) << "WARNING: locus " << hm->mapData->mapEntries[locus].locusName
                 << " (pos " <<  hm->mapData->mapEntries[locus].physicalPos << ") has ihh0 = 0. Skipping this locus. "<<endl;
             }
-            return skipLocusPair();
+            return skipLocusTuple();
         }
         
-        return { ihs2, ihs0 };
+        return { ihs2, ihs0, 0, 0 };
     }
 
     // === Phased mode ===
     double ihh1_up = 0, ihh1_down = 0;
     double ihh0_up = 0, ihh0_down = 0;
 
-    pair<double, double> ihh1_ihh0_upstream = calc_ehh_unidirection(locus, false);
-    if (skipLocus(ihh1_ihh0_upstream)) return skipLocusPair();
+    tuple<double, double, double, double> ihh1_ihh0_upstream = calc_ehh_unidirection(locus, false);
+    if (skipLocus(ihh1_ihh0_upstream)) return skipLocusTuple();
 
-    pair<double, double> ihh1_ihh0_downstream = calc_ehh_unidirection(locus, true);
-    if (skipLocus(ihh1_ihh0_downstream)) return skipLocusPair();
+    tuple<double, double, double, double> ihh1_ihh0_downstream = calc_ehh_unidirection(locus, true);
+    if (skipLocus(ihh1_ihh0_downstream)) return skipLocusTuple();
 
     // Sum values
-    double ihh1 = ihh1_ihh0_upstream.first + ihh1_ihh0_downstream.first;
-    double ihh0 = ihh1_ihh0_upstream.second + ihh1_ihh0_downstream.second;
+    double ihh1 = std::get<0>(ihh1_ihh0_upstream) + std::get<0>(ihh1_ihh0_downstream);
+    double ihh0 = std::get<1>(ihh1_ihh0_upstream) + std::get<1>(ihh1_ihh0_downstream);
 
-    return { ihh1, ihh0 };
+    return { ihh1, ihh0, std::get<2>(ihh1_ihh0_upstream)+ std::get<2>(ihh1_ihh0_downstream), std::get<3>(ihh1_ihh0_upstream) + std::get<3>(ihh1_ihh0_downstream)};
 }
 
 
@@ -962,10 +972,10 @@ IhhComponents IHS::calc_ihh1_details(int locus) {
     auto ihh1_ihh0_left = calc_ehh_unidirection(locus, true);   // left (downstream)
     if (skipLocus(ihh1_ihh0_left)) return {SKIP_LOCUS_VALUE, SKIP_LOCUS_VALUE, SKIP_LOCUS_VALUE, SKIP_LOCUS_VALUE};
 
-    ihh1_right = ihh1_ihh0_right.first;
-    ihh0_right = ihh1_ihh0_right.second;
-    ihh1_left = ihh1_ihh0_left.first;
-    ihh0_left = ihh1_ihh0_left.second;
+    ihh1_right = get<0>(ihh1_ihh0_right);
+    ihh0_right = get<1>(ihh1_ihh0_right);
+    ihh1_left = get<0>(ihh1_ihh0_left);
+    ihh0_left =  get<1>(ihh1_ihh0_left);
 
     return { ihh1_right, ihh1_left, ihh0_right, ihh0_left };
 }

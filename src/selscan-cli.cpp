@@ -59,6 +59,7 @@ void initalizeParameters(param_t &params,int argc, char *argv[]){
     params.addFlag(ARG_TRUNC, DEFAULT_TRUNC, "", HELP_TRUNC);
     params.addFlag(ARG_PI, DEFAULT_PI, "", HELP_PI);
 
+    params.addFlag(ARG_ML, DEFAULT_ML, "", HELP_ML);
 
     // params.addFlag(ARG_MISSING_FLAG, DEFAULT_MISSING_FLAG, "", HELP_MISSING_FLAG);
     // params.addFlag(ARG_IMPUTE_FLAG, DEFAULT_IMPUTE_FLAG, "", HELP_IMPUTE_FLAG);
@@ -174,6 +175,8 @@ void getBaseParamFromCmdLine(param_t& params, param_main &p){
     if(params.getBoolFlag(ARG_SKIP)){
         cerr << "WARNING: " << ARG_SKIP << " is now on by dafault.  This flag no longer has a function.\n";
     }
+
+    p.ML = params.getBoolFlag(ARG_ML);
 
     
 }

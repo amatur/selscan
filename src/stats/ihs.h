@@ -27,6 +27,9 @@ using namespace std;
         double derived_left;
         double ancestral_right;
         double ancestral_left;
+        double deri5;
+
+
     };
 class IHS: public SelscanStats{
 
@@ -37,7 +40,7 @@ class IHS: public SelscanStats{
 
         }
         void main(); 
-        pair<double, double> calc_ihh1(int locus);  
+        tuple<double, double, double, double> calc_ihh1(int locus);  
         IhhComponents calc_ihh1_details(int locus);
         pair<double, double> infer_missing(int locus);  
         std::mutex mutex_log;
@@ -56,7 +59,7 @@ class IHS: public SelscanStats{
         int max_extend;
 
         //phased_ihs
-        pair<double, double> calc_ehh_unidirection(int locus, bool downstream);
+        tuple<double, double, double, double> calc_ehh_unidirection(int locus, bool downstream);
 
         //unphased_ihs  
         pair<double, double> calc_ehh_unidirection_unphased(int locus, bool downstream, double& cihh2, double& cihh0);

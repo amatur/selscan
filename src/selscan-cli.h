@@ -114,6 +114,13 @@ To calculate XP-EHH:\n\
 \n\
 ./selscan --xpehh --vcf <vcf> --vcf-ref <vcf> --map <mapfile> --out <outfile>\n";
 
+
+const string ARG_ML = "--ml";
+const bool DEFAULT_ML = false;
+const string HELP_ML = "Outputting new features for ML models.";
+
+
+
 const string ARG_THREAD = "--threads";
 const int DEFAULT_THREAD = std::thread::hardware_concurrency();
 const string HELP_THREAD = "The number of threads to spawn during the calculation.\n\
