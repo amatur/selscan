@@ -455,7 +455,7 @@ VCFPass1Result HapMap::readHapDataVCF_pass1(string filename)
 
         int new_physpos = parse_int_fast(field_starts[1], field_ends[1]);
 
-        bool XP_LOCI_MISMATCH = false   ;
+        bool XP_LOCI_MISMATCH = true; // for now, assume all loci mismatch in XP mode, and rely on physpos-based skipping to identify shared loci. This is because in XP mode we want to keep all loci that are present in either VCF, even if they are not shared. So we will disable the NUM_LOCI_MISMATCH check and just rely on physpos-based skipping to identify shared loci.
         if (physpos == new_physpos)
             skip_due_to_duplicate_pos++;
         else {
@@ -582,12 +582,9 @@ void HapMap::readHapDataVCF_pass2(string filename,  HapData& hapData, const VCFP
     };
 
     if (p.SKIP && !p.CALC_XP && !p.CALC_XPNSL) {
-        LOG(ARG_SKIP << " set. Removing all variants < " << p.MAF << ".\n");
+        LOG(ARG_SKIP << " set. Removing all variants < " << p.MAF << ".");
     }
 
-    if(p.CALC_XP || p.CALC_XPNSL){
-        LOG("XP mode: MAF-based filtering is disabled. All variants will be loaded.\n");
-    }
 
     const int nhaps = p.UNPHASED ? pass1.current_ngts : pass1.current_ngts * 2;
 
@@ -596,11 +593,10 @@ void HapMap::readHapDataVCF_pass2(string filename,  HapData& hapData, const VCFP
                    << " loci."); 
 
     if(p.CALC_XP || p.CALC_XPNSL){
-        LOG("XP mode: MAF-based filtering is disabled, so no loci are skipped based on MAF.\n");
-        LOG("However, " << pass1.skipcount << " loci will still be skipped due to no variations being present in combined population.\n");
-        if(NUM_LOCI_MISMATCH){
-            LOG("or not being present in both VCFs.\n");
-        }
+        LOG("XP mode: MAF-based filtering is disabled.");
+        if(pass1.skipcount > 0)
+            LOG(pass1.skipcount << " loci will be skipped due to multiple entries at same genomic position.");
+
     }else{
         if (p.SKIP) {
             LOG(ARG_SKIP << " set. Removing all variants < " << p.MAF << ".");
@@ -683,10 +679,10 @@ void HapMap::readHapDataVCF_pass2(string filename,  HapData& hapData, const VCFP
     }
 
     if(p.CALC_XP || p.CALC_XPNSL){
-        LOG(pass1.skipcount << " loci were skipped.");
+        LOG("Done removing " << pass1.skipcount << " loci due to duplicate positions.");
     }else{
         if (p.SKIP) {
-            LOG("Removed " << pass1.skipcount << " low frequency variants from haplotype data.");
+            LOG("Done removing " << pass1.skipcount << " low frequency variants from haplotype data.");
         }
     }
     
@@ -937,6 +933,8 @@ void HapMap::readHapDataVCFXP(string filename, string filename2, HapData& hapDat
 
     readHapDataVCF_pass2(filename, hapData, pass1_h1, NUM_LOCI_MISMATCH);
     readHapDataVCF_pass2(filename2, hapData2, pass1_h2, NUM_LOCI_MISMATCH);
+    hapData.skipQueue = pass1_h1.skiplist;
+    hapData2.skipQueue = pass1_h2.skiplist;
 }
 
 void HapMap::readHapDataVCF(string filename, HapData& hapData)
