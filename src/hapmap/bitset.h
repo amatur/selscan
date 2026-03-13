@@ -31,9 +31,11 @@ class MyBitset{
         this->nwords = (nbits/WORDSZ) + 1; //idea: do ceil
 
                 // Calculate aligned size
-        size_t alignedSize = ((nbits + 63) / 64) * 8; // Assuming 64-bit alignment for uint64_t
+        //size_t alignedSize = ((nbits + 63) / 64) * 8; // Assuming 64-bit alignment for uint64_t
         
-                // Allocate aligned memory
+        size_t alignedSize = this->nwords * sizeof(uint64_t); // Assuming 64-bit alignment for uint64_t
+        
+        // Allocate aligned memory
             #ifdef _WIN32
                 bits = static_cast<uint64_t*>(_aligned_malloc(alignedSize, alignment));
             #else
@@ -156,6 +158,77 @@ class MyBitset{
     }
     */
 
+        // Copy constructor
+    // Deep-copies the bit array so each MyBitset owns its own memory.
+    MyBitset(const MyBitset& other){
+        //     cout << "Copy constructor called" << endl;
+        this->nbits = other.nbits;
+        this->nwords = other.nwords;
+        this->WORDSZ = other.WORDSZ;
+        this->num_1s = other.num_1s;
+
+        size_t alignedSize = this->nwords * sizeof(uint64_t);
+
+        // Allocate aligned memory
+        #ifdef _WIN32
+            bits = static_cast<uint64_t*>(_aligned_malloc(alignedSize, alignment));
+        #else
+            if (posix_memalign(reinterpret_cast<void**>(&bits), alignment, alignedSize) != 0) {
+                bits = nullptr;
+            }
+        #endif
+
+        if (!bits) {
+            throw std::bad_alloc();
+        }
+
+        // Copy raw bit data
+        std::memcpy(bits, other.bits, alignedSize);
+    }
+
+    // Assignment operator
+    // Deep-copy assignment, also handles self-assignment safely.
+    MyBitset& operator=(const MyBitset& other) {
+        if (this == &other) {
+            return *this;
+        }
+
+        // Allocate new memory first, so we do not lose the old data
+        // if allocation fails.
+        uint64_t* new_bits = nullptr;
+        size_t alignedSize = other.nwords * sizeof(uint64_t);
+
+        #ifdef _WIN32
+            new_bits = static_cast<uint64_t*>(_aligned_malloc(alignedSize, alignment));
+        #else
+            if (posix_memalign(reinterpret_cast<void**>(&new_bits), alignment, alignedSize) != 0) {
+                new_bits = nullptr;
+            }
+        #endif
+
+        if (!new_bits) {
+            throw std::bad_alloc();
+        }
+
+        std::memcpy(new_bits, other.bits, alignedSize);
+
+        // Free old memory
+        #ifdef _WIN32
+            _aligned_free(bits);
+        #else
+            free(bits);
+        #endif
+
+        // Copy metadata
+        bits = new_bits;
+        nbits = other.nbits;
+        nwords = other.nwords;
+        WORDSZ = other.WORDSZ;
+        num_1s = other.num_1s;
+
+        return *this;
+    }
+
     
 
     void set_bits(vector <unsigned int>& v){
@@ -245,9 +318,20 @@ class MyBitset{
         (*fout) << endl;
     }
 
+    // Copy only the raw bit data into an already-initialized bitset.
+    // Assumes this bitset already has the correct size.
+    void copy_bits_from(const MyBitset& other){
+        if (nbits != other.nbits || nwords != other.nwords) {
+            cerr << "ERROR: bitset sizes do not match in copy_bits_from()" << endl;
+            exit(EXIT_FAILURE);
+        }
+
+        std::memcpy(bits, other.bits, nwords * sizeof(uint64_t));
+        num_1s = other.num_1s;
+    }
 
     ~MyBitset(){
-        delete [] bits;
+        free(bits);
     }
 
 };

@@ -45,6 +45,61 @@ void HapData::initHapData(int nhaps, int nloci)
     INIT_SUCCESS = true;
 }
 
+/// @brief Sets up structure according to nhaps and nloci
+void HapData::initHapData(HapData& hapData_other, vector<size_t>& loci_to_skip)
+{
+    if(INIT_SUCCESS){
+        cerr << "ERROR: HapData already initialized. Please call releaseHapData() before re-initializing.\n";
+        exit(EXIT_FAILURE);
+    }
+    int nhaps = hapData_other.nhaps;
+    int nloci = hapData_other.nloci - loci_to_skip.size();
+
+    if (nhaps > std::numeric_limits<int>::max() || nloci > std::numeric_limits<int>::max())
+    {
+        cerr << "ERROR: number of haplotypes (" << nhaps << ") and number of loci (" << nloci << ") exceed maximum value.\n";
+        throw 0;
+    }
+
+    if (nhaps < 1 || nloci < 1)
+    {
+        cerr << "ERROR: number of haplotypes (" << nhaps << ") and number of loci (" << nloci << ") must be positive.\n";
+        throw 0;
+    }
+    cout << "=====" << endl;
+    std::cout << "After filtering: \n"
+          << "  Haplotypes: " << nhaps << "\n"
+          << "  Loci:       " << nloci << std::endl;
+    cout << "=====" << endl;
+    this->hapEntries = new struct HapEntry[nloci];
+    this->nhaps = nhaps;
+    this->nloci = nloci;
+
+    int skipped_counter = 0;
+    int new_i = 0;
+    for (int old_i = 0; old_i < hapData_other.nloci; old_i++){
+         if(old_i == loci_to_skip[skipped_counter]){
+            skipped_counter++;
+            continue; // skip this locus
+         }
+        
+        hapEntries[new_i].hapbitset->copy_bits_from(*hapData_other.hapEntries[old_i].hapbitset);
+        hapEntries[new_i].xorbitset->copy_bits_from(*hapData_other.hapEntries[old_i].xorbitset);
+
+
+        if(MISSING_ALLOWED && unphased){
+            hapEntries[new_i].missbitset = new MyBitset(nhaps);
+        }
+        new_i++;
+    }
+    //check that new_i is nloci
+    if(new_i != nloci){
+        cerr << "ERROR: new_i (" << new_i << ") does not match expected nloci (" << nloci << ").\n";
+        exit(EXIT_FAILURE);
+    }
+    INIT_SUCCESS = true;
+}
+
 void HapData::releaseHapData()
 {
     if (hapEntries == NULL) return;

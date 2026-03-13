@@ -238,6 +238,7 @@ public:
      * 
     */
     void initHapData(int nhaps, int nloci);
+    void initHapData(HapData& hapData_other, vector<size_t>& loci_to_skip);
     void releaseHapData();
     
 
