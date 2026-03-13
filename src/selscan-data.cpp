@@ -717,12 +717,12 @@ void HapMap::readHapDataVCFXP(string filename, string filename2, HapData& hapDat
     //but skip maybe due to duplicate positions
 
     bool NUM_LOCI_MISMATCH = (pass1_h1.nloci_before_filtering != pass1_h2.nloci_before_filtering);
-    for (int pid = 0; pid < pass1_h1.nloci_before_filtering ; pid++) {
-        if (pass1_h1.physpos[pid] != pass1_h2.physpos[pid]) {
-            NUM_LOCI_MISMATCH = true;
-            break;
-        }
-    }
+    // for (int pid = 0; pid < pass1_h1.nloci_before_filtering ; pid++) {
+    //     if (pass1_h1.physpos[pid] != pass1_h2.physpos[pid]) {
+    //         NUM_LOCI_MISMATCH = true;
+    //         break;
+    //     }
+    // }
     if(NUM_LOCI_MISMATCH) {
         LOG("WARNING: The two VCF files have different sets of loci. Will identify shared loci and skip non-shared ones.");
     } else {

@@ -24,7 +24,7 @@ class MyBitset{
     uint64_t* bits;
     int nbits;  // number of bits
     int nwords;
-    int WORDSZ = 64;
+    static constexpr int WORDSZ = 64;
     int num_1s = 0;
 
     MyBitset(int nbits){
@@ -95,6 +95,19 @@ class MyBitset{
         for (int k = 0; k < nwords; k++) {
             sum += __builtin_popcountll ((uint64_t)bits[k]);
         }
+
+        
+        return sum;
+    }
+
+    int count_1s_fast(){
+        int sum = 0;
+        uint64_t* p = bits;
+        uint64_t* end = bits + nwords;
+
+        while (p != end)
+            sum += __builtin_popcountll(*p++);
+
         return sum;
     }
 
@@ -181,7 +194,8 @@ class MyBitset{
             cerr << "Error: bit out of range: " << bit<< " "<<nbits-1 << endl;
             throw (EXIT_FAILURE);
         }
-        bits[bit/WORDSZ] |= (uint64_t) 1 << (bit % WORDSZ);
+        //bits[bit/WORDSZ] |= (uint64_t) 1 << (bit % WORDSZ);
+        bits[bit >> 6] |= (uint64_t)1 << (bit & 63);
     }
 
     void clear_bit(int bit){
