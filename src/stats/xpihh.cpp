@@ -631,6 +631,7 @@ void XPIHH::main()
             }
         }
     }else{
+        std::thread progressBarThread(displayProgressBar, std::ref(hm->currentProcessed), hm->hapData->nloci); // Launch the progress bar in a separate thread
         ThreadPool pool(p.numThreads);
         std::vector< std::future<pair<double, double> > > results;
         for(int i = 0; i <  hm->mapData->nloci; ++i) {
@@ -659,6 +660,7 @@ void XPIHH::main()
             }
 
             locus++;
+            hm->currentProcessed++;
             if(locus>hm->mapData->nloci){
                 HANDLE_ERROR("locus out of bounds");
             }
