@@ -912,6 +912,7 @@ void HapMap::readHapDataVCFXP(string filename, string filename2, HapData& hapDat
             if (total_c1 == 0 || total_c1 == total_haps) {
                 new_skip_h1.push_back(i);
                 new_skip_h2.push_back(i); // two copy for simple logic
+                cout<<"Locus " << i << " is monomorphic in combined data. Will skip from both files." << endl;
             }
         }
         rebuild_skipqueue_with_new_skips(pass1_h1.skiplist, new_skip_h1);
@@ -930,11 +931,11 @@ void HapMap::readHapDataVCFXP(string filename, string filename2, HapData& hapDat
         LOG("After filtering, " << pass1_h2.nloci_before_filtering - pass1_h2.skiplist.size() << " loci remain in reference VCF.");
     }
 
-
+    pass1_h1.skipcount += pass1_h1.skiplist.size();
+    pass1_h2.skipcount += pass1_h2.skiplist.size();
     readHapDataVCF_pass2(filename, hapData, pass1_h1, NUM_LOCI_MISMATCH);
     readHapDataVCF_pass2(filename2, hapData2, pass1_h2, NUM_LOCI_MISMATCH);
-    hapData.skipQueue = pass1_h1.skiplist;
-    hapData2.skipQueue = pass1_h2.skiplist;
+
 }
 
 void HapMap::readHapDataVCF(string filename, HapData& hapData)
