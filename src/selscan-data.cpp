@@ -785,110 +785,143 @@ void HapMap::readHapDataVCFXP(string filename, string filename2, HapData& hapDat
         //   3. If a position exists exactly once in both files,
         //      test joint monomorphism and skip both if monomorphic.
         // --------------------------------------------------------
-        while (i < pass1_h1.physpos.size() || j < pass1_h2.physpos.size())
-        {
+        size_t i = 0, j = 0;
+        auto h1 = pass1_h1;
+        auto h2 = pass1_h2;
 
-            // Decide next genomic position to process
-            int pos;
-            if (i < pass1_h1.physpos.size() && j < pass1_h2.physpos.size())
-            {
-                pos = std::min(pass1_h1.physpos[i], pass1_h2.physpos[j]);
-            }
-            else if (i < pass1_h1.physpos.size())
-            {
-                pos = pass1_h1.physpos[i];
-            }
-            else
-            {
-                pos = pass1_h2.physpos[j];
-            }
+        while (i < h1.physpos.size() && j < h2.physpos.size()) {
+            int pos_h1 = h1.physpos[i];
+            int pos_h2 = h2.physpos[j];
 
-            // Find full run of this position in h1
-            size_t i_start = i;
-            while (i < pass1_h1.physpos.size() && pass1_h1.physpos[i] == pos)
-            {
+            if (pos_h1 == pos_h2) {
+                // shared locus
+                //if (is_monomorphic(h1[i], h2[j])) {
+                int total_c1   = h1.num_1s[i] + h2.num_1s[j];
+                int total_haps = h1.current_ngts + h2.current_ngts;
+
+                // monomorphic if all alleles are ancestral or all derived
+                if (total_c1 == 0 || total_c1 == total_haps) {
+                    new_skip_h1.push_back(i);
+                    new_skip_h2.push_back(j); // two copy for simple logic
+                    //cout<<"Locus " << i << " is monomorphic in combined data. Will skip from both files." << endl;
+                }
+                //}
+                i++; j++;
+            } else if (pos_h1 < pos_h2) {
+                new_skip_h1.push_back(i);
                 i++;
-            }
-            size_t i_end = i;
-            size_t count_h1 = i_end - i_start;
-
-            // Find full run of this position in h2
-            size_t j_start = j;
-            while (j < pass1_h2.physpos.size() && pass1_h2.physpos[j] == pos)
-            {
+            } else { // pos_h2 < pos_h1
+                new_skip_h2.push_back(j);
                 j++;
             }
-            size_t j_end = j;
-            size_t count_h2 = j_end - j_start;
-
-            // ----------------------------------------------------
-            // Case 1: duplicated anywhere -> skip from everywhere
-            // ----------------------------------------------------
-            if (count_h1 > 1 || count_h2 > 1)
-            {
-                for (size_t k = i_start; k < i_end; k++)
-                {
-                    new_skip_h1.push_back(k);
-                }
-                for (size_t k = j_start; k < j_end; k++)
-                {
-                    new_skip_h2.push_back(k);
-                }
-                continue;
-            }
-
-            // ----------------------------------------------------
-            // Case 2: exists only in h1
-            // ----------------------------------------------------
-            if (count_h1 == 1 && count_h2 == 0)
-            {
-                new_skip_h1.push_back(i_start);
-                continue;
-            }
-
-            // ----------------------------------------------------
-            // Case 3: exists only in h2
-            // ----------------------------------------------------
-            if (count_h1 == 0 && count_h2 == 1)
-            {
-                new_skip_h2.push_back(j_start);
-                continue;
-            }
-
-            // ----------------------------------------------------
-            // Case 4: shared exactly once in both files
-            // ----------------------------------------------------
-            if (count_h1 == 1 && count_h2 == 1)
-            {
-
-                int derived_h1, derived_h2, total_derived;
-
-                if (p.UNPHASED)
-                {
-                    // unphased:
-                    //   num_1s = heterozygotes (one derived allele)
-                    //   num_2s = hom-derived genotypes (two derived alleles)
-                    derived_h1 = pass1_h1.num_1s[i_start] + 2 * pass1_h1.num_2s[i_start];
-                    derived_h2 = pass1_h2.num_1s[j_start] + 2 * pass1_h2.num_2s[j_start];
-                }
-                else
-                {
-                    // phased:
-                    //   num_1s already counts derived haplotypes
-                    derived_h1 = pass1_h1.num_1s[i_start];
-                    derived_h2 = pass1_h2.num_1s[j_start];
-                }
-
-                total_derived = derived_h1 + derived_h2;
-
-                // monomorphic if all alleles are ancestral or all are derived
-                if (total_derived == 0 || total_derived == total_alleles_joint)
-                {
-                    new_skip_h1.push_back(i_start);
-                    new_skip_h2.push_back(j_start);
-                }
-            }
         }
+        // Add remaining loci in h1 or h2 as skipped
+        while (i < h1.physpos.size()) new_skip_h1.push_back(i++);
+        while (j < h2.physpos.size()) new_skip_h2.push_back(j++);
+        // while (i < pass1_h1.physpos.size() || j < pass1_h2.physpos.size())
+        // {
+
+        //     // Decide next genomic position to process
+        //     int pos;
+        //     if (i < pass1_h1.physpos.size() && j < pass1_h2.physpos.size())
+        //     {
+        //         pos = std::min(pass1_h1.physpos[i], pass1_h2.physpos[j]);
+        //     }
+        //     else if (i < pass1_h1.physpos.size())
+        //     {
+        //         pos = pass1_h1.physpos[i];
+        //     }
+        //     else
+        //     {
+        //         pos = pass1_h2.physpos[j];
+        //     }
+
+        //     // Find full run of this position in h1
+        //     size_t i_start = i;
+        //     while (i < pass1_h1.physpos.size() && pass1_h1.physpos[i] == pos)
+        //     {
+        //         i++;
+        //     }
+        //     size_t i_end = i;
+        //     size_t count_h1 = i_end - i_start;
+
+        //     // Find full run of this position in h2
+        //     size_t j_start = j;
+        //     while (j < pass1_h2.physpos.size() && pass1_h2.physpos[j] == pos)
+        //     {
+        //         j++;
+        //     }
+        //     size_t j_end = j;
+        //     size_t count_h2 = j_end - j_start;
+
+        //     // ----------------------------------------------------
+        //     // Case 1: duplicated anywhere -> skip from everywhere
+        //     // ----------------------------------------------------
+        //     if (count_h1 > 1 || count_h2 > 1)
+        //     {
+        //         for (size_t k = i_start; k < i_end; k++)
+        //         {
+        //             new_skip_h1.push_back(k);
+        //         }
+        //         for (size_t k = j_start; k < j_end; k++)
+        //         {
+        //             new_skip_h2.push_back(k);
+        //         }
+        //         continue;
+        //     }
+
+        //     // ----------------------------------------------------
+        //     // Case 2: exists only in h1
+        //     // ----------------------------------------------------
+        //     if (count_h1 == 1 && count_h2 == 0)
+        //     {
+        //         new_skip_h1.push_back(i_start);
+        //         continue;
+        //     }
+
+        //     // ----------------------------------------------------
+        //     // Case 3: exists only in h2
+        //     // ----------------------------------------------------
+        //     if (count_h1 == 0 && count_h2 == 1)
+        //     {
+        //         new_skip_h2.push_back(j_start);
+        //         continue;
+        //     }
+
+        //     // ----------------------------------------------------
+        //     // Case 4: shared exactly once in both files
+        //     // ----------------------------------------------------
+        //     if (count_h1 == 1 && count_h2 == 1)
+        //     {
+
+        //         int derived_h1, derived_h2, total_derived;
+
+        //         if (p.UNPHASED)
+        //         {
+        //             // unphased:
+        //             //   num_1s = heterozygotes (one derived allele)
+        //             //   num_2s = hom-derived genotypes (two derived alleles)
+        //             derived_h1 = pass1_h1.num_1s[i_start] + 2 * pass1_h1.num_2s[i_start];
+        //             derived_h2 = pass1_h2.num_1s[j_start] + 2 * pass1_h2.num_2s[j_start];
+        //         }
+        //         else
+        //         {
+        //             // phased:
+        //             //   num_1s already counts derived haplotypes
+        //             derived_h1 = pass1_h1.num_1s[i_start];
+        //             derived_h2 = pass1_h2.num_1s[j_start];
+        //         }
+
+        //         total_derived = derived_h1 + derived_h2;
+
+        //         // monomorphic if all alleles are ancestral or all are derived
+        //         if (total_derived == 0 || total_derived == total_alleles_joint)
+        //         {
+        //             new_skip_h1.push_back(i_start);
+        //             new_skip_h2.push_back(j_start);
+        //         }
+        //     }
+        // }
 
         // Rebuild queues safely with old + new skips
         rebuild_skipqueue_with_new_skips(pass1_h1.skiplist, new_skip_h1);

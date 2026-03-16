@@ -351,9 +351,9 @@ pair<double, double> XPIHH::calc_ehh_unidirection(int locus,  bool downstream){
     unordered_map<int, vector<int> >& m = (* mp);
 
     int numSnps = hm->hapData->nloci; // must be same for both hapData and hapData2
-    // if(hm->hapData->nloci != hm->hapData2->nloci){
-    //     HANDLE_ERROR("Number of loci in both reference and non-reference hapData should be same.");
-    // }
+    if(hm->hapData->nloci != hm->hapData2->nloci){
+        HANDLE_ERROR("Number of loci in both reference and non-reference hapData should be same.");
+    }
 
     double ihh_p1 = 0;
     double ihh_p2 = 0;
@@ -596,9 +596,9 @@ void XPIHH::main()
 
     int nloci = hm->mapData->nloci;
 
-    // if(hm->hapData->nloci != hm->hapData2->nloci){
-    //     HANDLE_ERROR("Number of SNPs in both hapData and hapData2 should be same.");
-    // }
+    if(hm->hapData->nloci != hm->hapData2->nloci){
+        HANDLE_ERROR("Number of SNPs in both hapData and hapData2 should be same.");
+    }
 
     // if (p.CALC_XPNSL){
     //     for (int i = 0; i < hm->mapData->nloci; i++){
