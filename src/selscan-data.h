@@ -86,7 +86,7 @@ public:
 
 
     VCFPass1Result readHapDataVCF_pass1(string filename);
-    void readHapDataVCF_pass2(string filename, HapData& hapData, const VCFPass1Result& pass1, bool NUM_LOCI_MISMATCH);
+    void readHapDataVCF_pass2(string filename, HapData& hapData, const VCFPass1Result& pass1);
     void readHapDataVCFXP(string filename, string filename2, HapData& hapData, HapData& hapData2);
 
 

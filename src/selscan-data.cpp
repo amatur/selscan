@@ -563,7 +563,7 @@ VCFPass1Result HapMap::readHapDataVCF_pass1(string filename)
 }
 
 
-void HapMap::readHapDataVCF_pass2(string filename,  HapData& hapData, const VCFPass1Result& pass1, bool NUM_LOCI_MISMATCH = false)
+void HapMap::readHapDataVCF_pass2(string filename,  HapData& hapData, const VCFPass1Result& pass1)
 {
     igzstream fin;
     fin.open(filename.c_str());
@@ -720,7 +720,10 @@ void HapMap::readHapDataVCFXP(string filename, string filename2, HapData& hapDat
     //     }
     // }
     if(NUM_LOCI_MISMATCH) {
-        LOG("WARNING: The two VCF files have different sets of loci. Will identify shared loci and skip non-shared ones.");
+        LOG("ERROR: The two VCF files have different sets of loci.");
+        exit(EXIT_FAILURE);
+
+//        LOG("WARNING: The two VCF files have different sets of loci. Will identify shared loci and skip non-shared ones.");
     } else {
         LOG("The two VCF files contain the same number of loci. Calculations are performed assuming they represent the same set of loci.");
     }
@@ -950,9 +953,6 @@ void HapMap::readHapDataVCFXP(string filename, string filename2, HapData& hapDat
         rebuild_skipqueue_with_new_skips(pass1_h2.skiplist, new_skip_h2);
     }
 
-    
-
-
     if(pass1_h2.nloci_before_filtering - pass1_h2.skiplist.size() == 0){
         HANDLE_ERROR("After filtering, no loci remain in reference VCF. Please check your input files.");
     }else if(pass1_h1.nloci_before_filtering - pass1_h1.skiplist.size() == 0){
@@ -964,8 +964,8 @@ void HapMap::readHapDataVCFXP(string filename, string filename2, HapData& hapDat
 
     pass1_h1.skipcount = pass1_h1.skiplist.size();
     pass1_h2.skipcount = pass1_h2.skiplist.size();
-    readHapDataVCF_pass2(filename, hapData, pass1_h1, NUM_LOCI_MISMATCH);
-    readHapDataVCF_pass2(filename2, hapData2, pass1_h2, NUM_LOCI_MISMATCH);
+    readHapDataVCF_pass2(filename, hapData, pass1_h1);
+    readHapDataVCF_pass2(filename2, hapData2, pass1_h2);
 
 }
 
