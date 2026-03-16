@@ -607,8 +607,6 @@ void HapMap::readHapDataVCF_pass2(string filename,  HapData& hapData, const VCFP
     }
 
     // allocate exact size after filtering
-    cout<<"Initializing BITSET data structures for " << nhaps << " haplotypes and "
-        << (pass1.nloci_before_filtering - pass1.skipcount) << " loci after filtering...\n";
     hapData.initHapData(nhaps, pass1.nloci_before_filtering - pass1.skipcount);
 
     // preserve your old behavior
@@ -724,7 +722,7 @@ void HapMap::readHapDataVCFXP(string filename, string filename2, HapData& hapDat
     if(NUM_LOCI_MISMATCH) {
         LOG("WARNING: The two VCF files have different sets of loci. Will identify shared loci and skip non-shared ones.");
     } else {
-        LOG("The two VCF files have the same set of loci. Proceeding with joint monomorphism filtering.");
+        LOG("The two VCF files contain the same number of loci. Calculations are performed assuming they represent the same set of loci.");
     }
     
     // if (NUM_LOCI_MISMATCH) {            

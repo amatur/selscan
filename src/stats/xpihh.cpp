@@ -595,9 +595,10 @@ void XPIHH::main()
     }
 
     int nloci = hm->mapData->nloci;
-    if(hm->hapData->nloci != hm->hapData2->nloci){
-        HANDLE_ERROR("Number of SNPs in both hapData and hapData2 should be same.");
-    }
+
+    // if(hm->hapData->nloci != hm->hapData2->nloci){
+    //     HANDLE_ERROR("Number of SNPs in both hapData and hapData2 should be same.");
+    // }
 
     // if (p.CALC_XPNSL){
     //     for (int i = 0; i < hm->mapData->nloci; i++){
