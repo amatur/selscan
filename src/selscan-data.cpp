@@ -768,8 +768,6 @@ void HapMap::readHapDataVCFXP(string filename, string filename2, HapData& hapDat
         vector<size_t> new_skip_h1;
         vector<size_t> new_skip_h2;
 
-        size_t i = 0;
-        size_t j = 0;
 
         const int total_alleles_h1 = 2 * pass1_h1.current_ngts; // a genotype is like 0|1, so 2 alleles per genotype
         const int total_alleles_h2 = 2 * pass1_h2.current_ngts;
@@ -786,8 +784,8 @@ void HapMap::readHapDataVCFXP(string filename, string filename2, HapData& hapDat
         //      test joint monomorphism and skip both if monomorphic.
         // --------------------------------------------------------
         size_t i = 0, j = 0;
-        auto h1 = pass1_h1;
-        auto h2 = pass1_h2;
+        VCFPass1Result& h1 = pass1_h1;
+        VCFPass1Result& h2 = pass1_h2;
 
         while (i < h1.physpos.size() && j < h2.physpos.size()) {
             int pos_h1 = h1.physpos[i];
