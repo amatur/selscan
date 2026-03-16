@@ -455,12 +455,12 @@ VCFPass1Result HapMap::readHapDataVCF_pass1(string filename)
 
         int new_physpos = parse_int_fast(field_starts[1], field_ends[1]);
 
-        bool XP_LOCI_MISMATCH = true; // for now, assume all loci mismatch in XP mode, and rely on physpos-based skipping to identify shared loci. This is because in XP mode we want to keep all loci that are present in either VCF, even if they are not shared. So we will disable the NUM_LOCI_MISMATCH check and just rely on physpos-based skipping to identify shared loci.
+        bool ALLOW_XP_LOCI_MISMATCH = false; // for now, assume all loci mismatch in XP mode, and rely on physpos-based skipping to identify shared loci. This is because in XP mode we want to keep all loci that are present in either VCF, even if they are not shared. So we will disable the NUM_LOCI_MISMATCH check and just rely on physpos-based skipping to identify shared loci.
         if (physpos == new_physpos)
             skip_due_to_duplicate_pos++;
         else {
 
-            if((p.CALC_XP || p.CALC_XPNSL) && XP_LOCI_MISMATCH ){
+            if((p.CALC_XP || p.CALC_XPNSL) && ALLOW_XP_LOCI_MISMATCH ){
                 result.physpos.push_back(physpos);
             }
             
