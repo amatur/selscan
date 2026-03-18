@@ -439,6 +439,10 @@ VCFPass1Result HapMap::readHapDataVCF_pass1(string filename)
         }
 
         result.nloci_before_filtering++;
+        bool ALLOW_XP_LOCI_MISMATCH = true; // for now, assume all loci mismatch in XP mode, and rely on physpos-based skipping to identify shared loci. This is because in XP mode we want to keep all loci that are present in either VCF, even if they are not shared. So we will disable the NUM_LOCI_MISMATCH check and just rely on physpos-based skipping to identify shared loci.
+        if((p.CALC_XP || p.CALC_XPNSL) && ALLOW_XP_LOCI_MISMATCH ){
+            result.physpos.push_back(physpos);
+        }
 
         const char* pcur = line.c_str();
         const char* end  = pcur + line.size();
@@ -455,14 +459,11 @@ VCFPass1Result HapMap::readHapDataVCF_pass1(string filename)
 
         int new_physpos = parse_int_fast(field_starts[1], field_ends[1]);
 
-        bool ALLOW_XP_LOCI_MISMATCH = true; // for now, assume all loci mismatch in XP mode, and rely on physpos-based skipping to identify shared loci. This is because in XP mode we want to keep all loci that are present in either VCF, even if they are not shared. So we will disable the NUM_LOCI_MISMATCH check and just rely on physpos-based skipping to identify shared loci.
         if (physpos == new_physpos)
             skip_due_to_duplicate_pos++;
         else {
 
-            if((p.CALC_XP || p.CALC_XPNSL) && ALLOW_XP_LOCI_MISMATCH ){
-                result.physpos.push_back(physpos);
-            }
+
             
             skip_due_to_duplicate_pos = 0;
             physpos_first_duplicated_id = result.nloci_before_filtering - 1;
@@ -721,6 +722,8 @@ void HapMap::readHapDataVCFXP(string filename, string filename2, HapData& hapDat
     // }
     if(NUM_LOCI_MISMATCH) {
         LOG("ERROR: The two VCF files have different sets of loci.");
+        cout<<"File 1: " << filename << " has " << pass1_h1.nloci_before_filtering << " loci, with " << pass1_h1.skipcount << " skipped due to MAF or duplicates.\n";
+        cout<<"File 2: " << filename2 << " has " << pass1_h2.nloci_before_filtering << " loci, with " << pass1_h2.skipcount << " skipped due to MAF or duplicates.\n";
        // exit(EXIT_FAILURE);
 
 //        LOG("WARNING: The two VCF files have different sets of loci. Will identify shared loci and skip non-shared ones.");
