@@ -455,7 +455,7 @@ VCFPass1Result HapMap::readHapDataVCF_pass1(string filename)
 
         int new_physpos = parse_int_fast(field_starts[1], field_ends[1]);
 
-        bool ALLOW_XP_LOCI_MISMATCH = false; // for now, assume all loci mismatch in XP mode, and rely on physpos-based skipping to identify shared loci. This is because in XP mode we want to keep all loci that are present in either VCF, even if they are not shared. So we will disable the NUM_LOCI_MISMATCH check and just rely on physpos-based skipping to identify shared loci.
+        bool ALLOW_XP_LOCI_MISMATCH = true; // for now, assume all loci mismatch in XP mode, and rely on physpos-based skipping to identify shared loci. This is because in XP mode we want to keep all loci that are present in either VCF, even if they are not shared. So we will disable the NUM_LOCI_MISMATCH check and just rely on physpos-based skipping to identify shared loci.
         if (physpos == new_physpos)
             skip_due_to_duplicate_pos++;
         else {
@@ -721,7 +721,7 @@ void HapMap::readHapDataVCFXP(string filename, string filename2, HapData& hapDat
     // }
     if(NUM_LOCI_MISMATCH) {
         LOG("ERROR: The two VCF files have different sets of loci.");
-        exit(EXIT_FAILURE);
+       // exit(EXIT_FAILURE);
 
 //        LOG("WARNING: The two VCF files have different sets of loci. Will identify shared loci and skip non-shared ones.");
     } else {
