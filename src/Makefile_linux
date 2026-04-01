@@ -1,20 +1,29 @@
 # Makefile for selscan (Linux) - single executable version
 
 # Compiler
-CXX = g++
+CXX ?= g++
 
-# Compile flags (non-PIE) static
-CXXFLAGS = -O3 -m64 -mmmx -msse -msse2 -ftree-vectorize -fno-pie  -static-libstdc++ -static-libgcc
+# Base compile flags
+BASE_CXXFLAGS = -O3 -m64 -mmmx -msse -msse2 -ftree-vectorize -fno-pie
 
-# Link flags (non-PIE)
-LDFLAGS = -no-pie
+# Base link flags
+BASE_LDFLAGS = -no-pie
+
+# User-overridable flags
+CXXFLAGS ?=
+LDFLAGS ?=
+LDLIBS_EXTRA ?=
+
+# Final flags
+ALL_CXXFLAGS = $(BASE_CXXFLAGS) $(CXXFLAGS)
+ALL_LDFLAGS = $(BASE_LDFLAGS) $(LDFLAGS)
 
 # Include and library paths
 I_PATH = -I../include
 L_PATH = ../lib/linux
 
 # Libraries
-LDLIBS = -lm -pthread -lz -L$(L_PATH) -lgsl -lgslcblas
+LDLIBS = -lm -pthread -lz -L$(L_PATH) -lgsl -lgslcblas $(LDLIBS_EXTRA)
 
 # Object files
 OBJ_STATS = xpihh.o ehh.o ihs.o ihh12.o pi.o ehh12.o
@@ -26,42 +35,42 @@ all: selscan
 
 # Build selscan binary
 selscan: $(OBJS)
-	$(CXX) $(CXXFLAGS) $(LDFLAGS) -o $@ $^ $(LDLIBS)
+	$(CXX) $(ALL_CXXFLAGS) $(ALL_LDFLAGS) -o $@ $^ $(LDLIBS)
 
 # Compilation rules
 selscan-main.o: selscan-main.cpp
-	$(CXX) $(CXXFLAGS) $(I_PATH) -c $< -o $@
+	$(CXX) $(ALL_CXXFLAGS) $(I_PATH) -c $< -o $@
 
 selscan-data.o: selscan-data.cpp selscan-data.h
-	$(CXX) $(CXXFLAGS) $(I_PATH) -c $< -o $@
+	$(CXX) $(ALL_CXXFLAGS) $(I_PATH) -c $< -o $@
 
 selscan-cli.o: selscan-cli.cpp selscan-cli.h
-	$(CXX) $(CXXFLAGS) $(I_PATH) -c $< -o $@
+	$(CXX) $(ALL_CXXFLAGS) $(I_PATH) -c $< -o $@
 
 binom.o: binom.cpp binom.h
-	$(CXX) $(CXXFLAGS) -c $< -o $@
+	$(CXX) $(ALL_CXXFLAGS) -c $< -o $@
 
 norm.o: norm.cpp norm.h
-	$(CXX) $(CXXFLAGS) $(I_PATH) -c $< -o $@
+	$(CXX) $(ALL_CXXFLAGS) $(I_PATH) -c $< -o $@
 
 gene.o: gene.cpp gene.h
-	$(CXX) $(CXXFLAGS) $(I_PATH) -c $< -o $@
+	$(CXX) $(ALL_CXXFLAGS) $(I_PATH) -c $< -o $@
 
 param_t.o: param_t.cpp param_t.h
-	$(CXX) $(CXXFLAGS) -c $< -o $@
+	$(CXX) $(ALL_CXXFLAGS) -c $< -o $@
 
 gzstream.o: gzstream.cpp gzstream.h
-	$(CXX) $(CXXFLAGS) $(I_PATH) -c $< -o $@
+	$(CXX) $(ALL_CXXFLAGS) $(I_PATH) -c $< -o $@
 
 thread_pool.o: thread_pool.cpp thread_pool.h
-	$(CXX) $(CXXFLAGS) -c $< -o $@
+	$(CXX) $(ALL_CXXFLAGS) -c $< -o $@
 
 # Pattern rules
 %.o: hapmap/%.cpp hapmap/%.h
-	$(CXX) $(CXXFLAGS) $(I_PATH) -c $< -o $@
+	$(CXX) $(ALL_CXXFLAGS) $(I_PATH) -c $< -o $@
 
 %.o: stats/%.cpp stats/%.h
-	$(CXX) $(CXXFLAGS) $(I_PATH) -c $< -o $@
+	$(CXX) $(ALL_CXXFLAGS) $(I_PATH) -c $< -o $@
 
 # Cleanup
 clean:
