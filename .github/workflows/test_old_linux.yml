@@ -9,7 +9,7 @@ jobs:
   build-linux:
     name: linux
     runs-on: ubuntu-latest
-    if: contains(github.event.head_commit.message || '', '[binary_linux]')
+    if: contains(github.event.head_commit.message, '[binary_linux]')
 
     steps:
       - name: Checkout code
@@ -79,7 +79,6 @@ jobs:
   build-other:
     name: ${{ matrix.label }}
     runs-on: ${{ matrix.runner }}
-    if: contains(github.event.head_commit.message || '', matrix.tag)
 
     strategy:
       fail-fast: false
@@ -119,18 +118,20 @@ jobs:
 
     steps:
       - name: Checkout code
+        if: contains(github.event.head_commit.message, matrix.tag)
         uses: actions/checkout@v4
         with:
           persist-credentials: false
 
       - name: Debug tags
+        if: contains(github.event.head_commit.message, matrix.tag)
         shell: bash
         run: |
           echo "COMMIT MESSAGE: ${{ github.event.head_commit.message }}"
           echo "EXPECTED TAG: ${{ matrix.tag }}"
 
       - name: Build selscan (macOS)
-        if: matrix.kind == 'posix'
+        if: matrix.kind == 'posix' && contains(github.event.head_commit.message, matrix.tag)
         working-directory: src
         shell: bash
         run: |
@@ -138,7 +139,7 @@ jobs:
           make -f ${{ matrix.makefile }} -j
 
       - name: Test selscan (macOS)
-        if: matrix.kind == 'posix'
+        if: matrix.kind == 'posix' && contains(github.event.head_commit.message, matrix.tag)
         working-directory: src
         shell: bash
         run: |
@@ -147,7 +148,7 @@ jobs:
           ./${{ matrix.exe_name }} norm --help || true
 
       - name: Set up MSYS2
-        if: matrix.kind == 'windows'
+        if: matrix.kind == 'windows' && contains(github.event.head_commit.message, matrix.tag)
         uses: msys2/setup-msys2@v2
         with:
           msystem: clang64
@@ -158,7 +159,7 @@ jobs:
             mingw-w64-clang-x86_64-toolchain
 
       - name: Install GSL (Windows)
-        if: matrix.kind == 'windows'
+        if: matrix.kind == 'windows' && contains(github.event.head_commit.message, matrix.tag)
         shell: msys2 {0}
         run: |
           pacman -S mingw-w64-x86_64-gsl --noconfirm
@@ -169,7 +170,7 @@ jobs:
           cp /mingw64/include/gsl/* "${{ github.workspace }}/include/gsl/"
 
       - name: Build selscan (Windows)
-        if: matrix.kind == 'windows'
+        if: matrix.kind == 'windows' && contains(github.event.head_commit.message, matrix.tag)
         working-directory: src
         shell: msys2 {0}
         run: |
@@ -177,7 +178,7 @@ jobs:
           make -f ${{ matrix.makefile }} -j
 
       - name: Test selscan (Windows)
-        if: matrix.kind == 'windows'
+        if: matrix.kind == 'windows' && contains(github.event.head_commit.message, matrix.tag)
         working-directory: src
         shell: msys2 {0}
         run: |
@@ -185,12 +186,14 @@ jobs:
           ./${{ matrix.exe_name }} norm --help || true
 
       - name: Copy binary to repo bin directory
+        if: contains(github.event.head_commit.message, matrix.tag)
         shell: bash
         run: |
           mkdir -p "${{ matrix.bin_dir }}"
           cp "src/${{ matrix.exe_name }}" "${{ matrix.bin_dir }}/"
 
       - name: Set up Git credentials
+        if: contains(github.event.head_commit.message, matrix.tag)
         shell: bash
         run: |
           git config --global user.name "GitHub Actions"
@@ -198,7 +201,7 @@ jobs:
           git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}
 
       - name: Commit and push macOS binary
-        if: matrix.kind == 'posix'
+        if: matrix.kind == 'posix' && contains(github.event.head_commit.message, matrix.tag)
         shell: bash
         run: |
           git add "${{ matrix.bin_dir }}/${{ matrix.exe_name }}"
@@ -206,7 +209,7 @@ jobs:
           git push
 
       - name: Commit and push Windows binary and GSL files
-        if: matrix.kind == 'windows'
+        if: matrix.kind == 'windows' && contains(github.event.head_commit.message, matrix.tag)
         shell: bash
         run: |
           git add "${{ matrix.bin_dir }}/${{ matrix.exe_name }}"
