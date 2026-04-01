@@ -1,6 +1,6 @@
 #for windows, using MinGW build environment
 CC = clang++  
-G++FLAG=-std=c++17 -static  -O3
+G++FLAG=-std=c++17 -O3
 
 #-fuse-ld=bfd
 
