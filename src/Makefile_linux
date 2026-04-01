@@ -1,10 +1,10 @@
 # Makefile for selscan (Linux) - single executable version
 
 # Compiler
-CXX = g++-7
+CXX = g++
 
 # Compile flags (non-PIE) static
-CXXFLAGS = -O3 -m64 -mmmx -msse -msse2 -std=c++17 -ftree-vectorize -fno-pie  -static-libstdc++ -static-libgcc
+CXXFLAGS = -O3 -m64 -mmmx -msse -msse2 -ftree-vectorize -fno-pie  -static-libstdc++ -static-libgcc
 
 # Link flags (non-PIE)
 LDFLAGS = -no-pie
