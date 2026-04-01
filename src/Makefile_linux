@@ -4,7 +4,7 @@
 CXX ?= g++
 
 # Base compile flags
-BASE_CXXFLAGS = -O3 -m64 -mmmx -msse -msse2 -ftree-vectorize -fno-pie
+BASE_CXXFLAGS = -O3 -m64 -mmmx -msse -msse2 -ftree-vectorize -fno-pie -std=c++17
 
 # Base link flags
 BASE_LDFLAGS = -no-pie
