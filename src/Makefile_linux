@@ -4,7 +4,7 @@
 CXX = g++
 
 # Compile flags (non-PIE)
-CXXFLAGS = -O3 -m64 -mmmx -msse -msse2 -std=c++17 -ftree-vectorize -fno-pie
+CXXFLAGS = -O3 -m64 -mmmx -msse -msse2 -std=c++17 -ftree-vectorize -fno-pie  -static-libstdc++ -static-libgcc
 
 # Link flags (non-PIE)
 LDFLAGS = -no-pie

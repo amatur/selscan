@@ -18,7 +18,7 @@ jobs:
       matrix:
         include:
           - label: linux
-            runner: ubuntu-20.04
+            runner: ubuntu-latest
             bin_dir: bin/linux
             exe_ext: ""
 
